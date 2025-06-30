@@ -57,10 +57,20 @@ const Index = () => {
       let hoursWorked = 0;
 
       data.forEach((entry) => {
-        const { rate, normal_hours, overtime_hours, num_workers, category } =
-          entry;
-        const otCost = (rate / 8) * 1.5 * overtime_hours * num_workers;
-        const cost = rate * num_workers + otCost;
+        const {
+          rate,
+          normal_hours,
+          overtime_hours,
+          num_workers,
+          category,
+          overtime_multiplier,
+        } = entry;
+
+        const hourlyRate = rate;
+        const otMultiplier = overtime_multiplier || 1.5;
+        const normalCost = hourlyRate * normal_hours * num_workers;
+        const otCost = hourlyRate * overtime_hours * otMultiplier * num_workers;
+        const cost = normalCost + otCost;
 
         totalWorkers += num_workers;
         totalCost += cost;
@@ -81,23 +91,22 @@ const Index = () => {
         .from("daily_entries")
         .select("*")
         .order("entry_date", { ascending: false })
-        .limit(3);
+        .limit(20);
 
       if (error) {
         console.error("Recent entries fetch error:", error.message);
         return;
       }
 
-      const grouped: Record<
-        string,
-        { workers: number; cost: number }
-      > = {};
+      const grouped: Record<string, { workers: number; cost: number }> = {};
 
       data.forEach((entry) => {
         const date = entry.entry_date.split("T")[0];
-        const otCost =
-          (entry.rate / 8) * 1.5 * entry.overtime_hours * entry.num_workers;
-        const cost = entry.rate * entry.num_workers + otCost;
+        const hourlyRate = entry.rate;
+        const otMultiplier = entry.overtime_multiplier || 1.5;
+        const normalCost = hourlyRate * entry.normal_hours * entry.num_workers;
+        const otCost = hourlyRate * entry.overtime_hours * otMultiplier * entry.num_workers;
+        const cost = normalCost + otCost;
 
         if (!grouped[date]) {
           grouped[date] = { workers: 0, cost: 0 };
@@ -113,6 +122,7 @@ const Index = () => {
           workers,
           cost,
         }))
+        .sort((a, b) => b.date.localeCompare(a.date))
         .slice(0, 3);
 
       setRecentEntries(formatted);
@@ -184,7 +194,6 @@ const Index = () => {
           </TabsList>
 
           <TabsContent value="dashboard" className="space-y-6">
-            {/* Stats Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               <Card>
                 <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -247,7 +256,6 @@ const Index = () => {
               </Card>
             </div>
 
-            {/* Recent Entries */}
             <Card>
               <CardHeader>
                 <CardTitle>Recent Daily Entries</CardTitle>
@@ -280,7 +288,6 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            {/* Quick Actions */}
             <Card>
               <CardHeader>
                 <CardTitle>Quick Actions</CardTitle>

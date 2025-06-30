@@ -24,6 +24,7 @@ interface Entry {
   num_workers: number;
   site_id: string;
   supervisor_email?: string;
+  overtime_multiplier?: number; // added for cost calc
 }
 
 interface DailyReport {
@@ -88,13 +89,32 @@ const ReportsSection = () => {
     fetchData();
   }, []);
 
+  const calculateTotalCost = (
+    rate: number,
+    normalHours: number,
+    overtimeHours: number,
+    multiplier: number = 1.5,
+    workers: number
+  ) => {
+    const normalCost = rate * normalHours * workers;
+    const otCost = rate * overtimeHours * multiplier * workers;
+    return normalCost + otCost;
+  };
+
   const groupEntriesByDate = (entries: Entry[]): DailyReport[] => {
     const grouped: Record<string, DailyReport> = {};
 
     for (const entry of entries) {
       const dateOnly = entry.entry_date.split("T")[0] || entry.entry_date.split(" ")[0];
-      const otCost = (entry.rate / 8) * 1.5 * entry.overtime_hours * entry.num_workers;
-      const totalCost = entry.num_workers * entry.rate + otCost;
+      const multiplier = entry.overtime_multiplier || 1.5;
+
+      const totalCost = calculateTotalCost(
+        entry.rate,
+        entry.normal_hours,
+        entry.overtime_hours,
+        multiplier,
+        entry.num_workers
+      );
 
       if (!grouped[dateOnly]) {
         grouped[dateOnly] = {
@@ -131,8 +151,14 @@ const ReportsSection = () => {
 
     reportData.forEach((report) => {
       report.entries.forEach((entry) => {
-        const otCost = (entry.rate / 8) * 1.5 * entry.overtime_hours * entry.num_workers;
-        const totalCost = entry.num_workers * entry.rate + otCost;
+        const multiplier = entry.overtime_multiplier || 1.5;
+        const totalCost = calculateTotalCost(
+          entry.rate,
+          entry.normal_hours,
+          entry.overtime_hours,
+          multiplier,
+          entry.num_workers
+        );
 
         rows.push({
           Date: report.date,
@@ -239,8 +265,14 @@ const ReportsSection = () => {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {report.entries.map((entry, idx) => {
-                    const otCost = (entry.rate / 8) * 1.5 * entry.overtime_hours * entry.num_workers;
-                    const totalCost = entry.num_workers * entry.rate + otCost;
+                    const multiplier = entry.overtime_multiplier || 1.5;
+                    const totalCost = calculateTotalCost(
+                      entry.rate,
+                      entry.normal_hours,
+                      entry.overtime_hours,
+                      multiplier,
+                      entry.num_workers
+                    );
 
                     return (
                       <div key={idx} className="bg-gray-100 p-3 rounded">

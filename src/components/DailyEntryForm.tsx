@@ -54,7 +54,7 @@ const DailyEntryForm = () => {
     workerCount: 1,
   });
 
-  // 🔽 Fetch worker categories from Supabase
+  // Fetch worker categories
   useEffect(() => {
     const fetchCategories = async () => {
       const { data, error } = await supabase
@@ -80,12 +80,12 @@ const DailyEntryForm = () => {
     normalHours: number,
     overtimeHours: number,
     workerCount: number,
-    rate: number,
-    otMultiplier: number
+    hourlyRate: number,
+    overtimeMultiplier: number
   ) => {
-    const overtime = Math.max(normalHours + overtimeHours - 8, 0);
-    const otCost = (rate / 8) * otMultiplier * overtime;
-    return (rate + otCost) * workerCount;
+    const normalCost = normalHours * hourlyRate;
+    const overtimeCost = overtimeHours * hourlyRate * overtimeMultiplier;
+    return (normalCost + overtimeCost) * workerCount;
   };
 
   const addEntry = () => {
@@ -252,7 +252,7 @@ const DailyEntryForm = () => {
               <SelectContent>
                 {workerCategories.map((cat) => (
                   <SelectItem key={cat.id} value={cat.id}>
-                    {cat.name} ({cat.short_code}) - ₹{cat.hourly_rate}/day
+                    {cat.name} ({cat.short_code}) - ₹{cat.hourly_rate}/hr
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -313,7 +313,7 @@ const DailyEntryForm = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-bold text-orange-600">₹{entry.totalCost.toFixed(0)}</p>
-                  <p className="text-xs">@₹{entry.rate}/day</p>
+                  <p className="text-xs">@₹{entry.rate}/hr</p>
                 </div>
                 <Button variant="ghost" size="sm" onClick={() => removeEntry(entry.id)}>
                   <Minus className="h-4 w-4" />
